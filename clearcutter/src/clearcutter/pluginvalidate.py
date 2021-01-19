@@ -13,7 +13,12 @@ __license__ = "BSD"
 __status__ = "Prototype"
 __maintainer__ = "CP Constantine"
 
-import ConfigParser, commonvars, re, sys
+import configparser
+import re
+import sys
+
+from clearcutter import commonvars
+
 
 class PluginValidator(object):
     """
@@ -41,14 +46,13 @@ class PluginValidator(object):
     def __init__(self, plugin):
         self._plugin = plugin
 
-    
     def IsValid(self):
         '''Process a plugin .cfg as the OSSIM agent would, noting any malformed or missing directives'''
         
         self.CheckSections()
         self.PrintLabelUsage()
         
-        if self._valid is False: print "\nErrors detected in OSSIM Plugin file\n"
+        if self._valid is False: print("\nErrors detected in OSSIM Plugin file\n")
         return self._valid 
         # load each SID section
         
@@ -72,7 +76,7 @@ class PluginValidator(object):
         '''
         for essential in self.ESSENTIAL_OPTIONS:
             if essential not in self._plugin.options(section): 
-                print "\tsection '" + section + "' has no " + essential + " option!\n"
+                print("\tsection '" + section + "' has no " + essential + " option!\n")
                 self.valid = False
         
     def CheckOptions(self, rule):
@@ -80,16 +84,14 @@ class PluginValidator(object):
         Iterate through options listed in each section, and test they are valid OSSIM agent options          
         '''
 
-        print "\n-------------------\nProcessing Rule [" + rule + "]"
+        print("\n-------------------\nProcessing Rule [" + rule + "]")
         
         for option in self._plugin.options(rule):
             if (option not in commonvars.DefaultDirectives):
-                print "\tOption '" + option + "' in section '" + rule + "'is invalid"
+                print("\tOption '" + option + "' in section '" + rule + "'is invalid")
                 self._valid = False
             self.CheckValues(rule, option)
 
-   
-    
     def CheckValues(self, rule, option):
         '''
         Validate that the value of an option is properly-formed
@@ -103,13 +105,12 @@ class PluginValidator(object):
                 self.CheckDuplicateSID(self._plugin.get(rule, option))
         
         if self._plugin.get(rule, option) is '':
-            print "\tOption '" + option + "' has no assigned value"
+            print("\tOption '" + option + "' has no assigned value")
             self._valid = False
 
         self.CheckLabelValue(rule, option)
         #TODO: figure out embedded groupnames in strings
         self.CheckUserConsistency(rule, option)
-
                            
     def CheckRegexValue(self, section):
         """
@@ -132,29 +133,28 @@ class PluginValidator(object):
         group = self._plugin.get(rule, option)
         try:
             testreg = self._plugin.get(rule, 'regexp')
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             # user will have already been noted there is no such value
             return
-        if group.startswith('{$'):  #groupname value
-            if group.endswith('}') == False: print "\tmismatched brace in " + option
+        if group.startswith('{$'):  # groupname value
+            if group.endswith('}') == False: print("\tmismatched brace in " + option)
             group = group.replace('{$', '(?P<')
-            group = group.replace('}', '>')  #convert it to regexp syntax
+            group = group.replace('}', '>')  # convert it to regexp syntax
             if group not in testreg:
-                print "\tOption '" + option + "' refers to non-existant regexp group '" + group + "'"
+                print("\tOption '" + option + "' refers to non-existant regexp group '" + group + "'")
                 self._valid = False            
     
     def CheckDuplicateSID(self, sid):
         '''
         check that plugin_sid values are not duplicated
         '''
-        if sid.startswith("{$"):   #can't vald
+        if sid.startswith("{$"):   # can't vald
             return
         if sid in self._sids:
-            print "\tDuplicate plugin_sid value " + sid + " found"
+            print("\tDuplicate plugin_sid value " + sid + " found")
             self._valid = False
         else:
             self._sids.append(sid)
-
 
     def CheckUserConsistency(self, rule, option):
         '''
@@ -162,18 +162,16 @@ class PluginValidator(object):
         '''
         if option.lower() in self._userlabels:
             if self._plugin.get(rule, option) in self._userlabels[option]:
-                pass   #We've seen this one before
+                pass   # We've seen this one before
             else:
                 self._userlabels[option].append(self._plugin.get(rule, option))
-        
-        
-    
+
     def PrintLabelUsage(self):
-        print "\nThe Following Regex Labels are Assigned to UserData fields"
-        udatafields = self._userlabels.keys()
+        print("\nThe Following Regex Labels are Assigned to UserData fields")
+        udatafields = list(self._userlabels.keys())
         udatafields.sort()
         for udata in udatafields:
             udataresult = "\t" + udata + "\t" 
             for udataval in self._userlabels[udata]:
                 udataresult += str(udataval) + ", "
-            print udataresult
+            print(udataresult)

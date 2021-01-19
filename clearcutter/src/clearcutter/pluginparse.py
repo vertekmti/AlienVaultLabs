@@ -20,7 +20,12 @@ __maintainer__ = "CP Constantine"
 
 #TODO: Implement precheck
 
-import sys, re, ConfigParser, pluginvalidate, commonvars
+import sys
+import re
+import configparser
+
+from clearcutter import pluginvalidate
+from clearcutter import commonvars
 
 class ParsePlugin(object):
     """Processes Log Data against a list of regular expressions, possibly read from an OSSIM collector plugin"""
@@ -67,8 +72,7 @@ class ParsePlugin(object):
         return itemhash
     
     def _strip_value(self, value):
-        from string import strip
-        return strip(strip(value, '"'), "'")
+        return (value.strip('"')).strip("'")
     
     def get_entry(self, config, section, option):
         value = config.get(section, option)
@@ -78,10 +82,10 @@ class ParsePlugin(object):
    
     def LoadPlugin(self):
         try:
-            self.Plugin = ConfigParser.RawConfigParser()
+            self.Plugin = configparser.RawConfigParser()
             self.Plugin.read(self.Args.plugin)
-        except ConfigParser.MissingSectionHeaderError:
-            print self.Args.plugin + " Is not an OSSIM plugin file"
+        except configparser.MissingSectionHeaderError:
+            print(self.Args.plugin + " Is not an OSSIM plugin file")
             sys.exit()
         
         for rule in self.Plugin.sections():
@@ -94,21 +98,20 @@ class ParsePlugin(object):
     
     def ParseLogWithPlugin(self):
         '''Process a logfile according to SID entries in an OSSIM collector plugin'''
-        keys = self.SIDs.keys()
+        keys = list(self.SIDs.keys())
         keys.sort()
         for line in self.Log:
             matched = False
             for rulename in keys:
-                #match the line with precheck first
+                # match the line with precheck first
                 if self.Args.precheck is True:
                     try:
                         precheck = self.get_entry(self.Plugin, rulename, 'precheck')
                         if precheck in line:
                             self.rule_precheck_stats.append(str(rulename))
-                    except ConfigParser.NoOptionError:
+                    except configparser.NoOptionError:
                         pass
-                
-                
+
                 regexp = self.get_entry(self.Plugin, rulename, 'regexp')
                 if regexp is "":
                     continue
@@ -126,12 +129,12 @@ class ParsePlugin(object):
                 matched = True
 
                 if self.Args.quiet is False:
-                    print "Matched using %s" % rulename
+                    print("Matched using %s" % rulename)
                 if self.Args.verbose > 0:
-                    print line
+                    print(line)
                 if self.Args.verbose > 2:
-                    print regexp
-                    print line
+                    print(regexp)
+                    print(line)
                 #TODO: Implement label Extraction
                 #try:
                 #    if self.Args.group != '':  #Change this to print positional
@@ -147,13 +150,10 @@ class ParsePlugin(object):
                 self.matched += 1
                 break
             if matched is False and self.Args.nomatch is True:
-                print 'NOT MATCHED: ' + line
-
-    
-               
+                print('NOT MATCHED: ' + line)
 
     def Run(self):
-        f = open(self.Args.logfile, 'r')   #REPLACE WITH ARGS 
+        f = open(self.Args.logfile, 'r')   # REPLACE WITH ARGS
         self.Log = f.readlines()
         self.line_match = 0    
         self.matched = 0
@@ -162,12 +162,9 @@ class ParsePlugin(object):
 
     def PrintResults(self):
         for key in self.SIDs:
-            print "Rule: \t%s\n\t\t\t\t\t\tMatched %d times by Regexp" % (str(key), self.rule_stats.count(str(key)))
+            print("Rule: \t%s\n\t\t\t\t\t\tMatched %d times by Regexp" % (str(key), self.rule_stats.count(str(key))))
             if self.Args.precheck is True:
-                print "\t\t\t\t\t\tMatched %d times by Precheck" % (self.rule_precheck_stats.count(str(key)))
+                print("\t\t\t\t\t\tMatched %d times by Precheck" % (self.rule_precheck_stats.count(str(key))))
    
-        print "Counted", len(self.Log), "lines."
-        print "Matched", self.matched, "lines."
-     
-    
-                
+        print("Counted", len(self.Log), "lines.")
+        print("Matched", self.matched, "lines.")
